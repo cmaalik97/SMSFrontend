@@ -1,82 +1,131 @@
-# SMS React Frontend — how to run it, and how it talks to your database
-
-## 1. Install and run
-
+# 📚 Student Management System — Frontend (React)
+A role-based school management UI built with React + Vite + Tailwind CSS.  
+After login, each user sees a different dashboard based on their role.
+---
+# 🗂 Project Structure
+```
+sms-react/
+├── public/
+├── src/
+│   ├── api/
+│   │   ├── client.js          # Axios instance — adds JWT token to every request
+│   │   └── endpoints.js       # One function per API endpoint (students, fees, etc.)
+│   │
+│   ├── context/
+│   │   ├── AuthContext.jsx    # Global login state (who is logged in, their role)
+│   │   └── ThemeContext.jsx   # Global dark/light mode toggle
+│   │
+│   ├── components/
+│   │   ├── Icon.jsx           # SVG icon set used throughout the app
+│   │   ├── Navbar.jsx         # Public site top navigation bar
+│   │   ├── Footer.jsx         # Public site footer
+│   │   ├── Sidebar.jsx        # Admin dashboard sidebar with all 9 table links
+│   │   ├── Topbar.jsx         # Admin dashboard top bar (export + dark mode)
+│   │   ├── DashboardHeader.jsx# Top bar for Teacher and Student dashboards
+│   │   ├── ProtectedRoute.jsx # Blocks pages from the wrong role
+│   │   ├── StatCard.jsx       # Summary number card used on dashboards
+│   │   ├── StatusBadge.jsx    # Coloured pill (Present/Absent/Paid/Unpaid etc.)
+│   │   ├── DataTable.jsx      # Reusable search + filter + CRUD table
+│   │   └── FormModal.jsx      # Add / Edit modal used by all 8 entity tables
+│   │
+│   ├── layouts/
+│   │   ├── PublicLayout.jsx   # Wraps Home/About/SignIn/SignUp with Navbar+Footer
+│   │   └── AdminLayout.jsx    # Wraps all admin pages with Sidebar+Topbar
+│   │
+│   ├── pages/
+│   │   ├── Home.jsx           # Public landing page
+│   │   ├── About.jsx          # Public about page
+│   │   ├── SignIn.jsx         # Login form (all roles)
+│   │   ├── SignUp.jsx         # Register form (Admin only)
+│   │   ├── AdminDashboard.jsx # Admin home — summary cards + recent fees
+│   │   ├── EntityPage.jsx     # Generic CRUD page (Students/Teachers/Fees etc.)
+│   │   ├── AttendancePage.jsx # Custom attendance workflow page
+│   │   ├── TeacherDashboard.jsx # Teacher home — My Info + Attendance tabs
+│   │   └── StudentDashboard.jsx # Student home — Overview/Attendance/Results/Fees tabs
+│   │
+│   ├── config/
+│   │   └── entities.js        # Config for all 8 CRUD tables (columns, form fields,
+│   │                          #   validation rules, API to call)
+│   │
+│   ├── App.jsx                # All routes defined here
+│   ├── main.jsx               # Entry point — wraps app in Router + Contexts
+│   └── index.css              # Tailwind directives + custom animations
+│
+├── .env                       # VITE_API_BASE_URL (your C# API address)
+├── vercel.json                # Vercel deployment config
+├── vite.config.js
+├── tailwind.config.js
+└── package.json
+```
+---
+# ⚙️ Setup & Run Locally
 ```bash
-cd sms-react
+# 1. Install dependencies
 npm install
+
+# 2. Create .env file
 cp .env.example .env
-# open .env and set VITE_API_BASE_URL to match your running C# API
-# (check the port in your API's launchSettings.json, e.g. https://localhost:5001/api or http://localhost:5226/api)
+# Open .env and set:
+# VITE_API_BASE_URL=http://localhost:5231/api
+
+# 3. Start the dev server
 npm run dev
+# Opens at http://localhost:5173
 ```
+> Make sure the C# API is also running before you open the browser.
+---
+# 🔑 How Login Works
+1. User submits email + password on `/signin`
+2. React calls `POST /api/auth/login` on the C# API
+3. API returns a JWT token + the user's role (Admin / Teacher / Student)
+4. React stores the token in `localStorage`
+5. Every later API call sends the token in the `Authorization` header
+## The role decides which dashboard to show:
+- Role	-Redirected to	-Can see
+Admin	        `/admin`	        All 9 tables, full edit/delete
+Teacher	 `/teacher`	        Own subjects, salary + mark attendance
+Student	`/student`	        Own attendance, results, fees only
+---
 
-Open `http://localhost:5173`. Make sure your C# API is **also running** at
-the same time (`dotnet run` in the `SMS.Api` folder) — React calls it over
-HTTP, it doesn't work standalone.
-
-## 2. How the connection to the database actually works (full chain)
-
+# 📦 Key Dependencies
+Package	                   Purpose
+`react-router-dom`	       Page routing and navigation
+`axios`	                   HTTP requests to the C# API
+`react-hook-form`            	Form validation on all Add/Edit forms
+`tailwindcss`	             Utility-first CSS styling
+---
+# 🌐 Environment Variables
+Variable	                  Example	                     Description
+`VITE_API_BASE_URL`	`http://localhost:5231/api`	Base URL of the C# backend API
+For deployment, this changes to your live API URL (e.g. Render.com).
+---
+# 🚀 Build for Production
+```bash
+npm run build
+# Output goes to /dist folder
+# Deploy the /dist folder to Vercel
 ```
-[React component]
-      |  e.g. studentsApi.getAll()  in src/api/endpoints.js
-      v
-[Axios - src/api/client.js]
-      |  sends:  GET https://localhost:5001/api/students
-      |  header: Authorization: Bearer <jwt token>
-      v
-[ASP.NET Core - StudentsController.cs]
-      |  checks [Authorize], reads the role from the JWT
-      v
-[StudentRepository.cs]
-      |  opens SqlConnection, runs SqlCommand with SELECT ... FROM Students
-      v
-[SQL Server - StudentManagementSystem database]
-      |  returns rows
-      v
-   ...the same path back up, as JSON, into React's state (useState)
-```
-
-**React never has a connection string and never sees SQL.** That's by
-design — only the C# layer is allowed to talk to SQL Server. React only
-ever talks to the API over HTTP.
-
-## 3. Where each of your requirements lives in this codebase
-
-| You asked for | Where it is |
-|---|---|
-| `useContext` for global state | `src/context/AuthContext.jsx` (who's logged in, their role) and `src/context/ThemeContext.jsx` (dark mode) — both used everywhere via `useAuth()` / `useTheme()` |
-| Routes | `src/App.jsx` — uses `react-router-dom`'s `<Routes>`/`<Route>`, plus `ProtectedRoute.jsx` to guard by role |
-| Form validation with `useForm` | `react-hook-form`'s `useForm()` in `SignIn.jsx`, `SignUp.jsx`, and the shared `FormModal.jsx` (used by all 8 admin tables) |
-| Responsive | Every layout uses Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`) — sidebar collapses to a hamburger menu below `lg`, grids drop from 4 columns to 1 on phones |
-| Logout for Teacher/Student | `src/components/DashboardHeader.jsx` — shown at the top of both `TeacherDashboard.jsx` and `StudentDashboard.jsx` |
-
-## 4. Component list (15 total)
-
-`Navbar`, `Footer`, `Sidebar`, `Topbar`, `DashboardHeader`, `StatCard`,
-`StatusBadge`, `DataTable`, `FormModal`, `Icon`, `ProtectedRoute`,
-`PublicLayout`, `AdminLayout`, `EntityPage` (generic, reused for all 8
-tables), plus the 7 page components (`Home`, `About`, `SignIn`, `SignUp`,
-`AdminDashboard`, `TeacherDashboard`, `StudentDashboard`).
-
-## 5. One important CORS thing
-
-Your `Program.cs` already allows `http://localhost:5173` (Vite's default
-port) — if you change the React dev server port, update the CORS policy
-in `Program.cs` to match, or the browser will block every request with a
-CORS error.
-
-## 6. Creating a Teacher or Student login (Admin flow)
-
-From the Users table in the Admin dashboard, "Add User" calls
-`POST /api/users` with `{ fullName, email, password, role }`. Right now
-this creates the login row only — for a complete profile you'd also want
-to immediately call `POST /api/students` or `POST /api/teachers` with the
-returned `userId` to create their profile row too. That second call isn't
-wired up automatically yet; it's a good next feature to add once this is
-running.
-
-
-# System 
-* hdvddfvdv 
-fbfb
+---
+# 🎨 Design
+* Colors: Orange-600 (brand accent) + Forest Green (sidebar/dark elements)
+* Dark Mode: Toggle button in every header — preference saved in localStorage
+* Responsive: Mobile-first with Tailwind breakpoints (sm / md / lg)
+* Fonts: Sora (headings) + Inter (body text) from Google Fonts
+---
+# 📋 Pages Summary
+- Page	              Route         	    Who can access
+1. Home	             `/`	                Everyone (public)
+2. About	             `/about`	           Everyone (public)
+3. Sign In	            `/signin`	           Everyone (public)
+4. Sign Up	            `/signup`        	      Everyone — creates Admin only
+5. Admin Dashboard	`/admin`	            Admin only
+6. Students	             `/admin/students`	Admin only
+7. Teachers	             `/admin/teachers`	Admin only
+8. Fees	            `/admin/fees`	      Admin only
+9. Classes	             `/admin/classes`   	Admin only
+10. Subjects	      `/admin/subjects`  	Admin only
+11. Results	             `/admin/results` 	Admin only
+12. Attendance	      `/admin/attendance`	Admin only
+13. Users	            `/admin/users`	      Admin only
+14. Teacher Dashboard	`/teacher`	           Teacher only
+15. Student Dashboard	`/student`	           Student only
