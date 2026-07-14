@@ -89,23 +89,13 @@ Student	`/student`	        Own attendance, results, fees only
 
 # 📦 Key Dependencies
 Package	                   Purpose
-`react-router-dom`	       Page routing and navigation
-`axios`	                   HTTP requests to the C# API
-`react-hook-form`            	Form validation on all Add/Edit forms
-`tailwindcss`	             Utility-first CSS styling
+* `react-router-dom`	       Page routing and navigation
+* `axios`	                   HTTP requests to the C# API
+* `react-hook-form`            	Form validation on all Add/Edit forms
+* `tailwindcss`	             Utility-first CSS styling
 ---
-# 🌐 Environment Variables
-Variable	                  Example	                     Description
-`VITE_API_BASE_URL`	`http://localhost:5231/api`	Base URL of the C# backend API
-For deployment, this changes to your live API URL (e.g. Render.com).
----
-# 🚀 Build for Production
-```bash
-npm run build
-# Output goes to /dist folder
-# Deploy the /dist folder to Vercel
-```
----
+
+
 # 🎨 Design
 * Colors: Orange-600 (brand accent) + Forest Green (sidebar/dark elements)
 * Dark Mode: Toggle button in every header — preference saved in localStorage
